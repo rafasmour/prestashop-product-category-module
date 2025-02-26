@@ -198,17 +198,58 @@ class ProdCategory extends Module
         $this->context->controller->addCSS($this->_path.'/views/css/front.css');
     }
 
-    public function getProductCategory(){
+    public function getProductCategories($product)
+    {
+        $categoryIds = $product->getCategories($product->id);
+        $categories = [];
+        $lang = $this->context->language->id;
 
+        foreach ($categoryIds as $id) {
+            $category = new Category($id, $lang);
+            $categories[] = [
+                'id' => $category->id,
+                'name' => $category->name,
+                'url' => $this->context->link->getCategoryLink($category->id)
+            ];
+        }
+        return $categories;
     }
 
     public function hookDisplayProductExtraContent($params)
     {
-        dd($params);
+        $conf = $this->getConfigFormValues();
+        $display = $conf['PRODCATEGORY_SHOW_CATEGORIES'];
+        $displayHook = $conf['PRODCATEGORY_DISPLAY_CATEGORIES'];
+        if(!$display || $displayHook != 'hookDisplayProductExtraContent'){
+            return;
+        }
+        $product = $params['product'];
+        $categories = $this->getProductCategories($product);
+
+        if(empty($categories)) return ;
+
+        $this->context->smarty->assign('categories', $categories);
+        var_dump($categories[0]->link);
+        $templatePath = __DIR__ . '/views/templates/custom/displayCategories.tpl';
+        var_dump($templatePath);
+        $content = $this->context->smarty->fetch($templatePath);
+        $extraContent = new PrestaShop\PrestaShop\Core\Product\ProductExtraContent();
+        $extraContent->setTitle($this->l('Categories'))
+            ->setContent($content);
+
+        return [$extraContent];
     }
 
     public function hookDisplayProductAdditionalInfo($params)
     {
-        dd($params);
+        $conf = $this->getConfigFormValues();
+        $display = $conf['PRODCATEGORY_SHOW_CATEGORIES'];
+        $displayHook = $conf['PRODCATEGORY_DISPLAY_CATEGORIES'];
+        if(!$display || $displayHook != 'hookDisplayProductAdditionalInfo'){
+            return;
+        }
+        $product = $params['product'];
+        $categories = $this->getProductCategories($product);
+        $this->context->smarty->assign('categories', $categories);
     }
 }

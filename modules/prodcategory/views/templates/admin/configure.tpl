@@ -1,2 +1,1 @@
-
-
+{*Used to display configuration page*}
