@@ -9,3 +9,5 @@ You will need docker-compose, as this testing-instance uses prestashop flashligh
 3. login with email:```admin@prestashop.com``` password ```prestashop```
 4. navigate to Modules > Modules Manager and Install Product Category module
 5. Leave it as it is or go to the configuration page of the module
+
+#### [Read more about the module](modules/prodcategory/Readme.md)
