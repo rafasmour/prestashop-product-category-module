@@ -38,7 +38,8 @@ class ProdCategory extends Module
         return parent::install() &&
             $this->registerHook('header') &&
             $this->registerHook('displayBackOfficeHeader') &&
-            $this->registerHook('displayProductExtraContent');
+            $this->registerHook('displayProductExtraContent') &&
+            $this->registerHook('displayProductAdditionalInfo');
     }
 
     public function uninstall()
@@ -220,18 +221,16 @@ class ProdCategory extends Module
         $conf = $this->getConfigFormValues();
         $display = $conf['PRODCATEGORY_SHOW_CATEGORIES'];
         $displayHook = $conf['PRODCATEGORY_DISPLAY_CATEGORIES'];
-        if(!$display || $displayHook != 'hookDisplayProductExtraContent'){
-            return;
+        if($display && $displayHook != 'hookDisplayProductExtraContent'){
+            return [];
         }
         $product = $params['product'];
         $categories = $this->getProductCategories($product);
 
-        if(empty($categories)) return ;
+        if(empty($categories)) return [];
 
         $this->context->smarty->assign('categories', $categories);
-        var_dump($categories[0]->link);
-        $templatePath = __DIR__ . '/views/templates/custom/displayCategories.tpl';
-        var_dump($templatePath);
+        $templatePath = __DIR__ . '/views/templates/custom/displayCategoriesExtra.tpl';
         $content = $this->context->smarty->fetch($templatePath);
         $extraContent = new PrestaShop\PrestaShop\Core\Product\ProductExtraContent();
         $extraContent->setTitle($this->l('Categories'))
@@ -245,11 +244,21 @@ class ProdCategory extends Module
         $conf = $this->getConfigFormValues();
         $display = $conf['PRODCATEGORY_SHOW_CATEGORIES'];
         $displayHook = $conf['PRODCATEGORY_DISPLAY_CATEGORIES'];
-        if(!$display || $displayHook != 'hookDisplayProductAdditionalInfo'){
-            return;
+        var_dump($display && $displayHook == 'hookDisplayProductAdditionalInfo');
+        if($display && $displayHook == 'hookDisplayProductAdditionalInfo'){
+            return [];
         }
-        $product = $params['product'];
+        var_dump('hey');
+        $prodId = $params['product']->id;
+        $product = new Product($prodId);
         $categories = $this->getProductCategories($product);
+
+        if(empty($categories)) return [];
+
+        $this->context->smarty->assign('additionalInfo', true);
         $this->context->smarty->assign('categories', $categories);
+        $templatePath = __DIR__ . '/views/templates/custom/displayCategoriesAdditional.tpl';
+        return $this->context->smarty->fetch($templatePath);
+
     }
 }
