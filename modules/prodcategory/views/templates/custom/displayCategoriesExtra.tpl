@@ -2,7 +2,7 @@
     <ul>
         {foreach from=$categories item=category}
             <li>
-                <a href="{$category.url}" class="category-link">{$category.name}</a>
+                <a href="{$category.url}" class="p-1">{$category.name}</a>
             </li>
         {/foreach}
     </ul>

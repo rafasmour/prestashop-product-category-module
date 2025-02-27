@@ -6,7 +6,6 @@ if (!defined('_PS_VERSION_')) {
 
 class ProdCategory extends Module
 {
-
     public function __construct()
     {
         $this->name = 'prodcategory';
@@ -25,15 +24,10 @@ class ProdCategory extends Module
 
         $this->ps_versions_compliancy = array('min' => '1.7', 'max' => _PS_VERSION_);
     }
-
-    /**
-     * Don't forget to create update methods if needed:
-     * http://doc.prestashop.com/display/PS16/Enabling+the+Auto-Update
-     */
     public function install()
     {
-        Configuration::updateValue('PRODCATEGORY_DISPLAY_CATEGORIES', true);
-        Configuration::updateValue('PRODCATEGORY_SHOW_CATEGORIES', 'hookDisplayProductAdditionalInfo');
+        Configuration::updateValue('PRODCATEGORY_DISPLAY', true);
+        Configuration::updateValue('PRODCATEGORY_HOOK', 'hookDisplayProductAdditionalInfo');
 
         return parent::install() &&
             $this->registerHook('header') &&
@@ -44,15 +38,15 @@ class ProdCategory extends Module
 
     public function uninstall()
     {
-        Configuration::deleteByName('PRODCATEGORY_DISPLAY_CATEGORIES');
-        Configuration::deleteByName('PRODCATEGORY_SHOW_CATEGORIES');
+        Configuration::deleteByName('PRODCATEGORY_DISPLAY');
+        Configuration::deleteByName('PRODCATEGORY_HOOK');
 
-        return parent::uninstall();
+        return parent::uninstall() &&
+            $this->unregisterHook('header') &&
+            $this->unregisterHook('displayBackOfficeHeader') &&
+            $this->unregisterHook('displayProductExtraContent') &&
+            $this->unregisterHook('displayProductAdditionalInfo');
     }
-
-    /**
-     * Load the configuration form
-     */
     public function getContent()
     {
         /**
@@ -62,16 +56,12 @@ class ProdCategory extends Module
             $this->postProcess();
         }
 
-        $this->context->smarty->assign('module_dir', $this->_path);
+        $this->context->smarty->assign('module_dir', $this->path);
 
         $output = $this->context->smarty->fetch($this->local_path.'views/templates/admin/configure.tpl');
 
         return $output.$this->renderForm();
     }
-
-    /**
-     * Create the form that will be displayed in the configuration of your module.
-     */
     protected function renderForm()
     {
         $helper = new HelperForm();
@@ -95,10 +85,6 @@ class ProdCategory extends Module
 
         return $helper->generateForm(array($this->getConfigForm()));
     }
-
-    /**
-     * Create the structure of your form.
-     */
     protected function getConfigForm()
     {
         return array(
@@ -112,7 +98,7 @@ class ProdCategory extends Module
                         'type' => 'select',
                         'prefix' => '<i class="icon icon-envelope"></i>',
                         'desc' => $this->l('Where should the categories be displayed'),
-                        'name' => 'PRODCATEGORY_DISPLAY_CATEGORIES',
+                        'name' => 'PRODCATEGORY_HOOK',
                         'label' => $this->l('Display Hook'),
                         'options' => array(
                             'query' => array(
@@ -131,8 +117,8 @@ class ProdCategory extends Module
                     ),
                     array(
                         'type' => 'switch',
-                        'label' => $this->l('Display categories'),
-                        'name' => 'PRODCATEGORY_SHOW_CATEGORIES',
+                        'label' => $this->l('Display Categories'),
+                        'name' => 'PRODCATEGORY_DISPLAY',
                         'is_bool' => true,
                         'desc' => $this->l('Select wrether the categories should be visible.'),
                         'values' => array(
@@ -155,21 +141,13 @@ class ProdCategory extends Module
             ),
         );
     }
-
-    /**
-     * Set values for the inputs.
-     */
     protected function getConfigFormValues()
     {
         return array(
-            'PRODCATEGORY_DISPLAY_CATEGORIES' => Configuration::get('PRODCATEGORY_DISPLAY_CATEGORIES'),
-            'PRODCATEGORY_SHOW_CATEGORIES' => Configuration::get('PRODCATEGORY_SHOW_CATEGORIES')
+            'PRODCATEGORY_DISPLAY' => Configuration::get('PRODCATEGORY_DISPLAY'),
+            'PRODCATEGORY_HOOK' => Configuration::get('PRODCATEGORY_HOOK')
         );
     }
-
-    /**
-     * Save form data.
-     */
     protected function postProcess()
     {
         $form_values = $this->getConfigFormValues();
@@ -179,29 +157,9 @@ class ProdCategory extends Module
         }
     }
 
-    /**
-    * Add the CSS & JavaScript files you want to be loaded in the BO.
-    */
-    public function hookDisplayBackOfficeHeader()
-    {
-        if (Tools::getValue('configure') == $this->name) {
-            $this->context->controller->addJS($this->_path.'views/js/back.js');
-            $this->context->controller->addCSS($this->_path.'views/css/back.css');
-        }
-    }
-
-    /**
-     * Add the CSS & JavaScript files you want to be added on the FO.
-     */
-    public function hookHeader()
-    {
-        $this->context->controller->addJS($this->_path.'/views/js/front.js');
-        $this->context->controller->addCSS($this->_path.'/views/css/front.css');
-    }
-
     public function getProductCategories($product)
     {
-        $categoryIds = $product->getCategories($product->id);
+        $categoryIds = $product->getProductCategories($product->id);
         $categories = [];
         $lang = $this->context->language->id;
 
@@ -219,18 +177,18 @@ class ProdCategory extends Module
     public function hookDisplayProductExtraContent($params)
     {
         $conf = $this->getConfigFormValues();
-        $display = $conf['PRODCATEGORY_SHOW_CATEGORIES'];
-        $displayHook = $conf['PRODCATEGORY_DISPLAY_CATEGORIES'];
-        if($display && $displayHook != 'hookDisplayProductExtraContent'){
+        $display = $conf['PRODCATEGORY_DISPLAY'];
+        $displayHook = $conf['PRODCATEGORY_HOOK'];
+        if(!$display || $displayHook !== 'hookDisplayProductExtraContent'){
             return [];
         }
+        echo('hey');
         $product = $params['product'];
         $categories = $this->getProductCategories($product);
-
         if(empty($categories)) return [];
 
         $this->context->smarty->assign('categories', $categories);
-        $templatePath = __DIR__ . '/views/templates/custom/displayCategoriesExtra.tpl';
+        $templatePath = $this->local_path . '/views/templates/custom/displayCategoriesExtra.tpl';
         $content = $this->context->smarty->fetch($templatePath);
         $extraContent = new PrestaShop\PrestaShop\Core\Product\ProductExtraContent();
         $extraContent->setTitle($this->l('Categories'))
@@ -242,23 +200,19 @@ class ProdCategory extends Module
     public function hookDisplayProductAdditionalInfo($params)
     {
         $conf = $this->getConfigFormValues();
-        $display = $conf['PRODCATEGORY_SHOW_CATEGORIES'];
-        $displayHook = $conf['PRODCATEGORY_DISPLAY_CATEGORIES'];
-        var_dump($display && $displayHook == 'hookDisplayProductAdditionalInfo');
-        if($display && $displayHook == 'hookDisplayProductAdditionalInfo'){
+        $display = $conf['PRODCATEGORY_DISPLAY'];
+        $displayHook = $conf['PRODCATEGORY_HOOK'];
+        if(!$display || $displayHook !== 'hookDisplayProductAdditionalInfo'){
             return [];
         }
-        var_dump('hey');
         $prodId = $params['product']->id;
         $product = new Product($prodId);
         $categories = $this->getProductCategories($product);
 
         if(empty($categories)) return [];
-
         $this->context->smarty->assign('additionalInfo', true);
         $this->context->smarty->assign('categories', $categories);
-        $templatePath = __DIR__ . '/views/templates/custom/displayCategoriesAdditional.tpl';
+        $templatePath = $this->local_path . '/views/templates/custom/displayCategoriesAdditional.tpl';
         return $this->context->smarty->fetch($templatePath);
-
     }
 }

@@ -1,11 +1,10 @@
 <div class="product-categories">
-        <div class="additional-info">
+        <span class="additional-info">
             Categories
-        </div>
-        <p>
-        {foreach from=$categories item=category}
-                <a href="{$category.url}" class="category-link">{$category.name}</a>
-        {/foreach}
-
-        </p>
+        </span>
+        <span class="d-flex ">
+                {foreach from=$categories item=category}
+                        <a href="{$category.url}" class="p-1">{$category.name}</a>
+                {/foreach}
+        </span>
 </div>
