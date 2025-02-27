@@ -205,6 +205,12 @@ class ProdCategory extends Module
         if(!$display || $displayHook !== 'hookDisplayProductAdditionalInfo'){
             return [];
         }
+        /**
+         * in displayProductAdditionalInfo
+         * product of params is an instance of ProductLazyArray
+         * that's why We take the Id and then make a new Product Object
+         * var_dump($params['product']);
+         */
         $prodId = $params['product']->id;
         $product = new Product($prodId);
         $categories = $this->getProductCategories($product);
