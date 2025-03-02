@@ -182,7 +182,6 @@ class ProdCategory extends Module
         if(!$display || $displayHook !== 'hookDisplayProductExtraContent'){
             return [];
         }
-        echo('hey');
         $product = $params['product'];
         $categories = $this->getProductCategories($product);
         if(empty($categories)) return [];
